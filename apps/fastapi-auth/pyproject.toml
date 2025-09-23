@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fastapi-auth"
+version = "0.1.0"
+description = "FastAPI Azure Entra Authentication Service"
+requires-python = ">=3.12.10"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "python-multipart>=0.0.6",
+    "python-dotenv>=1.0.0",
+    "pydantic-settings>=2.0.0",
+    "pyjwt[crypto]>=2.8.0",
+    "jwcrypto>=1.5.0",
+    "httpx>=0.25.0",
+    "msal>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fastapi_auth"]
+
+[project.scripts]
+fastapi-auth = "fastapi_auth.main:main"
