@@ -23,7 +23,11 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+    "pytest-cov>=4.1.0",
     "httpx>=0.25.0",
+    "freezegun>=1.2.0",
+    "coverage[toml]>=7.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -31,3 +35,18 @@ packages = ["src/fastapi_auth"]
 
 [project.scripts]
 fastapi-auth = "fastapi_auth.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "unit: marks tests as unit tests (fast, isolated)",
+    "integration: marks tests as integration tests (slower, may hit external services)",
+    "auth: marks tests related to authentication",
+    "obo: marks tests related to On-Behalf-Of flow",
+    "slow: marks tests as slow running",
+]
+asyncio_mode = "auto"
