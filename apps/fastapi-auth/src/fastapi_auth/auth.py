@@ -22,9 +22,14 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 # Security scheme
 security = HTTPBearer()
 
-# Azure tenant-specific endpoints
-TENANT_DISCOVERY_ENDPOINT = f"https://login.microsoftonline.com/{settings.azure_tenant_id}/v2.0/.well-known/openid_configuration"
-TENANT_JWKS_ENDPOINT = f"https://login.microsoftonline.com/{settings.azure_tenant_id}/discovery/v2.0/keys"
+# Azure tenant-specific endpoints (constructed dynamically)
+def get_tenant_discovery_endpoint() -> str:
+    """Get tenant-specific discovery endpoint."""
+    return f"https://login.microsoftonline.com/{settings.azure_tenant_id}/v2.0/.well-known/openid_configuration"
+
+def get_tenant_jwks_endpoint() -> str:
+    """Get tenant-specific JWKS endpoint."""
+    return f"https://login.microsoftonline.com/{settings.azure_tenant_id}/discovery/v2.0/keys"
 
 # MSAL app for tenant validation (lazy initialization)
 _msal_app = None
@@ -60,23 +65,37 @@ class AuthResponse(BaseModel):
 async def get_tenant_configuration() -> Dict[str, Any]:
     """
     Get Azure tenant-specific configuration using tenant discovery.
+    If the discovery endpoint is not available, return a fallback configuration.
     
     Returns:
         Dict containing tenant configuration
     """
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(TENANT_DISCOVERY_ENDPOINT, timeout=10.0)
+            # Try the v2.0 discovery endpoint first
+            response = await client.get(get_tenant_discovery_endpoint(), timeout=10.0)
             response.raise_for_status()
             config = response.json()
             logger.info(f"Retrieved tenant configuration for tenant: {settings.azure_tenant_id}")
             return config
         except Exception as e:
-            logger.error(f"Failed to get tenant configuration: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve tenant configuration"
-            )
+            logger.warning(f"Failed to get tenant configuration from discovery endpoint: {str(e)}")
+            
+            # Fallback: construct the configuration manually based on tenant ID
+            logger.info(f"Using fallback tenant configuration for tenant: {settings.azure_tenant_id}")
+            fallback_config = {
+                "issuer": f"https://sts.windows.net/{settings.azure_tenant_id}/",
+                "authorization_endpoint": f"https://login.microsoftonline.com/{settings.azure_tenant_id}/oauth2/v2.0/authorize",
+                "token_endpoint": f"https://login.microsoftonline.com/{settings.azure_tenant_id}/oauth2/v2.0/token",
+                "jwks_uri": f"https://login.microsoftonline.com/{settings.azure_tenant_id}/discovery/v2.0/keys",
+                "response_types_supported": ["code", "id_token", "code id_token", "token id_token", "token"],
+                "scopes_supported": ["openid", "profile", "email", "offline_access"],
+                "id_token_signing_alg_values_supported": ["RS256"],
+                "tenant_id": settings.azure_tenant_id,
+                "cloud_instance_name": "microsoftonline.com",
+                "msgraph_host": "graph.microsoft.com"
+            }
+            return fallback_config
 
 
 async def get_tenant_jwks() -> Dict[str, Any]:
@@ -88,7 +107,7 @@ async def get_tenant_jwks() -> Dict[str, Any]:
     """
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(TENANT_JWKS_ENDPOINT, timeout=10.0)
+            response = await client.get(get_tenant_jwks_endpoint(), timeout=10.0)
             response.raise_for_status()
             jwks = response.json()
             logger.info(f"Retrieved JWKS for tenant: {settings.azure_tenant_id}")
@@ -195,14 +214,14 @@ async def validate_token_with_azure(token: str) -> Dict[str, Any]:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except jwt.InvalidAudienceError:
-            logger.warning(f"Invalid audience in token")
+            logger.warning("Invalid audience in token")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token audience",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except jwt.InvalidIssuerError:
-            logger.warning(f"Invalid issuer in token")
+            logger.warning("Invalid issuer in token")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token issuer",
