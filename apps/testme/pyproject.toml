@@ -1,0 +1,17 @@
+[project]
+name = "testme"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Rishi Sharma", email = "rishi@drpcrd.com" }
+]
+requires-python = ">=3.12.10"
+dependencies = []
+
+[project.scripts]
+testme = "testme:main"
+
+[build-system]
+requires = ["uv_build>=0.8.19,<0.9.0"]
+build-backend = "uv_build"

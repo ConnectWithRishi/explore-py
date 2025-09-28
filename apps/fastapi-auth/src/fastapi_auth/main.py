@@ -15,7 +15,7 @@ from .config import settings
 # Configure logging
 logging.basicConfig(
     level=logging.INFO if not settings.debug else logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ async def health_check() -> Dict[str, Any]:
         "services": {
             "azure_authority": settings.authority,
             "api_audience": settings.api_audience_computed,
-        }
+        },
     }
 
 
@@ -81,19 +81,20 @@ async def global_exception_handler(request, exc):
         content={
             "detail": "Internal server error",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        },
     )
 
 
 def main():
     """Entry point for the application."""
     import uvicorn
+
     uvicorn.run(
         "fastapi_auth.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,
-        log_level="info"
+        log_level="info",
     )
 
 

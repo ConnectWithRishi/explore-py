@@ -1,23 +1,17 @@
+[project]
+name = "explore-py"
+version = "0.0.0"
+requires-python = ">=3.12.10"
+
+
 [tool.uv.workspace]
 members = [
-    "packages/auth-core",
-    "packages/entra-client", 
-    "packages/common-models",
-    "apps/fastapi-auth"
+    "apps/fastapi-auth",
 ]
 
-# Define workspace sources for shared packages
 [tool.uv.sources]
-auth-core = { workspace = true }
-entra-client = { workspace = true }
-common-models = { workspace = true }
 
-[tool.uv]
-dev-dependencies = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.9.0",
-    "isort>=5.12.0",
-    "mypy>=1.6.0",
-    "pre-commit>=3.5.0",
+[dependency-groups]
+dev = [
+    "ruff",
 ]
